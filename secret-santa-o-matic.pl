@@ -14,6 +14,9 @@
 #                                                                                          #
 # Uses ASCII art "elf with gift", 11/97 by Joan G. Stark (aka Spunk), taken from           #
 #    http://www.chris.com/ascii/index.php?art=holiday/christmas/other                      #
+#    The use of said ASCII art is permitted for personal (non-commercial) use only and     #
+#    requires leaving the artists initials ("jgs") on the picture.                         # 
+#    See https://asciiart.website/joan/www.geocities.com/SoHo/7373/please.html for details #
 #                                                                                          #
 ############################################################################################
 
