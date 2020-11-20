@@ -25,31 +25,23 @@ use warnings;
 use Cwd;
 use Tk;
 use File::Path qw( make_path );
+use Config::Simple;
 
-my $version = "v0.94";
+my $version = "v0.95";
 
-# Options TODO: Use config file to save and retreive data
-my $option_resultspath = cwd()."/secret_santas/";
-my $option_silent = 0;
-my $option_writefiles = 1;
-my $option_maxlistheight = 16;
-my $option_emailto = "Dear";
-my $option_emailsubject = "Mail from Secret-Santa-O-Matic!";
-my $option_emailbody = "The Secret-Santa-O-Matic has rolled the dice again this year and found a nice person who you are Secret Santa for. His or her name is in the attached file, so that even the Secret-Santa-O-Matic does not know who will get a gift from you. Make it a good one! Merry Christmas!!!\n\nHo. Ho. Ho.\n\n-Your Secret-Santa-O-Matic";
+# Read config file into hash
+my $cfg = new Config::Simple('app.cfg');
+my %config = $cfg->vars();
 
+my $option_resultspath = cwd()."/".$config{"settings.resultsdir"}."/";
 # Create output path if it does not exist
 if ( !-d $option_resultspath ) {
     make_path $option_resultspath or die "Failed to create path: $option_resultspath";
 }
 
 # Set participants of secret santa here TODO: Load from and save to config file
-my @allPeople = sort("Alice", "Bob", "Eve", "Zoe");
-my @selectPeople = sort("Alice", "Bob", "Zoe");
-
-# Set exceptions here
-my @illegal = (["Alice", "Bob"]
-             );
-my $numillegals = scalar(@illegal);
+my @allPeople = sort(split(",", $config{"people.names"}));
+my @selectPeople = sort(split(",", $config{"people.selected"}));
 
 my @result;
 
@@ -68,7 +60,7 @@ my $topLeftFrame = $topFrame->Frame()->pack(
 my $peopleListBox = $topLeftFrame->Scrolled("Listbox",
     -selectmode => 'multiple',
     -scrollbars => "osoe",
-    -height => scalar(@allPeople) >= $option_maxlistheight ?  $option_maxlistheight : scalar(@allPeople) 
+    -height => scalar(@allPeople) >= $config{"gui.maxlistheight"} ?  $config{"gui.maxlistheight"} : scalar(@allPeople) 
 )->pack();
 
 my $buttonFrame = $topLeftFrame->Frame()->pack();
@@ -114,25 +106,25 @@ my $doButton = $optionsFrame->Button(
 
 my $filesCheckBox = $optionsFrame->Checkbutton(
 	-text => 'write files',
-	-variable => \$option_writefiles,
+	-variable => \$config{"settings.writefiles"},
 	-anchor => 'w',
     -command => sub{ 
         $consoleText->delete("1.0", 'end');
         print_options();
-        #print "Option 'writefiles' set to ".$option_writefiles.". ", $option_writefiles ? ("Enabling file output.\n") : ("Not writing to files.\n");; 
+        #print "Option 'writefiles' set to ".$config{"settings.writefiles"}.". ", $config{"settings.writefiles"} ? ("Enabling file output.\n") : ("Not writing to files.\n");; 
     },
 )->pack(
     -side => 'left',
 );;
 
-my $option_silentCheckBox = $optionsFrame->Checkbutton(
+my $optionsilentCheckBox = $optionsFrame->Checkbutton(
 	-text => 'silent',
-	-variable => \$option_silent,
+	-variable => \$config{"settings.silent"},
 	-anchor => 'w',
     -command => sub{ 
         $consoleText->delete("1.0", 'end');
         print_options();
-        #print "Option 'silent' set to ".$option_silent.". ", $option_silent ? ("Supressing console output.\n") : ("Enabling console output.\n");; 
+        #print "Option 'silent' set to ".$config{"settings.silent"}.". ", $config{"settings.silent"} ? ("Supressing console output.\n") : ("Enabling console output.\n");; 
     },
 )->pack(
     -side => 'left',
@@ -151,8 +143,6 @@ my $emailButton = $mainWindow->Button(
 )->pack(
     -side => 'right',
 );
-
-
 
 
 tie *STDOUT, ref $consoleText, $consoleText;
@@ -178,7 +168,7 @@ sub send_mails {
     if (scalar(@result)) {
         shift @result; #remove last element TODO: refactor so that this is done directly after drawing?
         foreach (@result) {
-            my @args = ("thunderbird", "-compose", "subject='$option_emailsubject',to='$_',body='$option_emailto $_,\n\n$option_emailbody',attachment='$option_resultspath$_.txt'");
+            my @args = ("thunderbird", "-compose", qq(subject=\'$config{"email.subject_".$config{"email.language"}}\',to=\'$_\',body=\'$config{"email.salutation_".$config{"email.language"}} $_,\n\n$config{"email.body_".$config{"email.language"}}\',attachment=\'$option_resultspath$_.txt\'));
             system(@args) == 0 or die "system @args failed: $?";
         }
     } else {
@@ -188,9 +178,9 @@ sub send_mails {
 
 
 sub print_options {
-    print "Option 'silent' set to ".$option_silent.". ", $option_silent ? ("Supressing console output.\n") : ("Enabling console output.\n");; 
-    print "Option 'writefiles' set to ".$option_writefiles.". ", $option_writefiles ? ("Enabling file output.\n") : ("Not writing to files.\n");; 
-    print "\nOutput path for files is '".$option_resultspath."'.\n" if $option_writefiles;
+    print "Option 'silent' set to ".$config{"settings.silent"}.". ", $config{"settings.silent"} ? ("Supressing console output.\n") : ("Enabling console output.\n");; 
+    print "Option 'writefiles' set to ".$config{"settings.writefiles"}.". ", $config{"settings.writefiles"} ? ("Enabling file output.\n") : ("Not writing to files.\n");; 
+    print "\nOutput path for files is '".$option_resultspath."'.\n" if $config{"settings.writefiles"};
 
 }
 
@@ -219,7 +209,7 @@ sub generate_sequence {
         $loopcounter++;
     }
 
-    if($option_writefiles and $validorder) {
+    if($config{"settings.writefiles"} and $validorder) {
         my $numresults = scalar(@result);
         for my $i (0 .. $#result) {
             unless ($i == ($numresults-1)) {
@@ -266,7 +256,7 @@ sub generate_sequence {
         print " files written. ";
     }
     if($loopcounter > 20) {
-      print "No valid sequence could be found in 20 runs. Please check constraints. ";
+      print "No valid sequence could be found in 20 runs. Please check selection and constraints. ";
     }
 
     print "Done.\n";
@@ -285,28 +275,22 @@ sub draw_lots {
     push (@pairs, $firstname);
     
     while(@peoplecopy) {
-        print 'Choosing gift recipient for: '.$currentname."\n" unless $option_silent;
+        print 'Choosing gift recipient for: '.$currentname."\n" unless $config{"settings.silent"};
         $valid = 0;
         my $retrycounter = 0;
         until($valid) {
             my $randomname = "";
             $randomname = $peoplecopy[rand @peoplecopy];
-            print '  candidate: '.$randomname unless $option_silent;
-            my $counter = 0;
-            for my $i (@illegal) {
-                # TODO: reimplement using hashes
-                if ((grep {$_ eq $randomname} @$i) and (grep {$_ eq $currentname} @$i)){
-                  print " ...invalid match!\n" unless $option_silent;
-                  unless ($retrycounter++ < 20) { 
-                    print "Too many tries, aborting...\n\n"; 
-                    return \@pairs, 0; 
-                  }
-                } else {
-                  $counter++;    
-                }
-            }    
-            if ($counter == $numillegals) {
-                print " ...accepted\n" unless $option_silent;
+            print '  candidate: '.$randomname unless $config{"settings.silent"};
+            # check if candidate is in list of illegal matches for current person
+            if ($config{"illegal.".$currentname} and (index($config{"illegal.".$currentname},$randomname) != -1)) {
+              print " ...invalid match!\n" unless $config{"settings.silent"};
+              unless ($retrycounter++ < 20) { 
+                print "Too many tries, aborting...\n\n"; 
+                return \@pairs, 0; 
+              }
+            } else {
+                print " ...accepted\n" unless $config{"settings.silent"};
                 $valid = 1;
                 my $index = 0;
                 $index++ until $peoplecopy[$index] eq $randomname;
@@ -316,11 +300,10 @@ sub draw_lots {
             }
         }
     }
-    for my $i (@illegal) {
-        if ((grep {$_ eq $firstname} @$i) and (grep {$_ eq $currentname} @$i)) {
-            print "Last and first are invalid match, aborting...\n\n"; 
-            return \@pairs, 0; 
-        } 
+    # check if last and first in list are a valid combination
+    if ($config{"illegal.".$currentname} and (index($config{"illegal.".$currentname},$firstname) != -1)) {
+        print "Last and first are invalid match, aborting...\n\n"; 
+        return \@pairs, 0; 
     }
     push(@pairs, $firstname);
     return (\@pairs, $valid);
