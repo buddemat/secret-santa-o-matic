@@ -10,7 +10,11 @@ Perl/Tk script to automatically determine a random sequence of Secret Santas for
 
 Checkout the repository. 
 
-The application requires a `perl` installation and the module `Config::Simple` to run.
+    git clone https://github.com/buddemat/secret-santa-o-matic.git
+
+The application naturally requires a `perl` installation and the module `Config::Simple` to run.
+
+    cpan install Config::Simple
 
 To use the `Compose emails` feature, the *Thunderbird* email client needs to be installed. 
 
@@ -26,7 +30,7 @@ Edit the `app.cfg` file to modify the configuration
 
 Call
 
-`perl secret-santa-o-matic.pl` 
+    perl secret-santa-o-matic.pl 
 
 ## Acknowledgement / License
 
