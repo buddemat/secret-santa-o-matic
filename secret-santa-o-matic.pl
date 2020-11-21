@@ -27,7 +27,7 @@ use Tk;
 use File::Path qw( make_path );
 use Config::Simple;
 
-my $version = "v0.95";
+my $version = "v0.96";
 
 # Read config file into hash
 my $cfg = new Config::Simple('app.cfg');
@@ -39,11 +39,14 @@ if ( !-d $option_resultspath ) {
     make_path $option_resultspath or die "Failed to create path: $option_resultspath";
 }
 
-# Set participants of secret santa here TODO: Load from and save to config file
+my @emailLanguages = sort(split(",", $config{"email.languages"}));
+
+# Load secret santa participants here 
 my @allPeople = sort(split(",", $config{"people.names"}));
 my @selectPeople = sort(split(",", $config{"people.selected"}));
 
 my @result;
+my $result_status = 0;
 
 # Perl/Tk GUI
 my $mainWindow = MainWindow->new();
@@ -72,7 +75,7 @@ my $invertButton = $buttonFrame->Button(
     -side => 'left',
 );
 
-# TODO: Edit-Button
+# TODO: Edit-Button to edit and/or save to config file
 # my $editButton = $buttonFrame->Button(
 #     -text => 'settings',
 #     -command => sub{ print "not yet implemented...\n"; },
@@ -92,14 +95,35 @@ my $doButton = $optionsFrame->Button(
         $consoleText->delete("1.0", 'end');
         my @selection = $peopleListBox->curselection();
         clean_results_directory();
-        generate_sequence(\@selection);
+        $result_status = generate_sequence(\@selection);
+        set_email_button($result_status and $config{'settings.writefiles'});
     },
 )->pack(
     -anchor => 'n',
     -side => 'bottom',
 
-);my $opionsLabel = $optionsFrame->Label(
+);
+
+my $opionsLabel = $optionsFrame->Label(
 	-text => 'Options:',
+)->pack(
+    -side => 'left',
+);
+
+
+my $languageDropDown = $optionsFrame->Optionmenu(
+    -variable => \$config{"email.activelang"}, 
+    -options => \@emailLanguages,
+    -command => sub{ 
+        $consoleText->delete("1.0", 'end');
+        print_options();
+    },
+)->pack(
+    -side => 'left',
+);;
+
+my $dropDownLabel = $optionsFrame->Label(
+	-text => 'email language',
 )->pack(
     -side => 'left',
 );
@@ -109,9 +133,12 @@ my $filesCheckBox = $optionsFrame->Checkbutton(
 	-variable => \$config{"settings.writefiles"},
 	-anchor => 'w',
     -command => sub{ 
+        unless ($config{"settings.writefiles"}) {
+          $result_status = 0;
+          set_email_button(0);
+        } 
         $consoleText->delete("1.0", 'end');
         print_options();
-        #print "Option 'writefiles' set to ".$config{"settings.writefiles"}.". ", $config{"settings.writefiles"} ? ("Enabling file output.\n") : ("Not writing to files.\n");; 
     },
 )->pack(
     -side => 'left',
@@ -124,11 +151,12 @@ my $optionsilentCheckBox = $optionsFrame->Checkbutton(
     -command => sub{ 
         $consoleText->delete("1.0", 'end');
         print_options();
-        #print "Option 'silent' set to ".$config{"settings.silent"}.". ", $config{"settings.silent"} ? ("Supressing console output.\n") : ("Enabling console output.\n");; 
     },
 )->pack(
     -side => 'left',
 );;
+
+
 
 my $quitButton = $mainWindow->Button(
     -text => 'Quit',
@@ -139,7 +167,8 @@ my $quitButton = $mainWindow->Button(
 
 my $emailButton = $mainWindow->Button(
     -text => 'Compose emails',
-    -command => sub{ send_mails(); },
+    -state => 'disabled',
+    -command => sub{ send_mails() if $config{"settings.writefiles"} ; },
 )->pack(
     -side => 'right',
 );
@@ -168,7 +197,7 @@ sub send_mails {
     if (scalar(@result)) {
         shift @result; #remove last element TODO: refactor so that this is done directly after drawing?
         foreach (@result) {
-            my @args = ("thunderbird", "-compose", qq(subject=\'$config{"email.subject_".$config{"email.language"}}\',to=\'$_\',body=\'$config{"email.salutation_".$config{"email.language"}} $_,\n\n$config{"email.body_".$config{"email.language"}}\',attachment=\'$option_resultspath$_.txt\'));
+            my @args = ("thunderbird", "-compose", qq(subject=\'$config{"email.subject_".$config{"email.activelang"}}\',to=\'$_\',body=\'$config{"email.salutation_".$config{"email.activelang"}} $_,\n\n$config{"email.body_".$config{"email.activelang"}}\',attachment=\'$option_resultspath$_.txt\'));
             system(@args) == 0 or die "system @args failed: $?";
         }
     } else {
@@ -176,12 +205,23 @@ sub send_mails {
     }
 }
 
-
 sub print_options {
-    print "Option 'silent' set to ".$config{"settings.silent"}.". ", $config{"settings.silent"} ? ("Supressing console output.\n") : ("Enabling console output.\n");; 
-    print "Option 'writefiles' set to ".$config{"settings.writefiles"}.". ", $config{"settings.writefiles"} ? ("Enabling file output.\n") : ("Not writing to files.\n");; 
+    print "Option 'silent' set to ".$config{"settings.silent"}.". ", $config{"settings.silent"} ? ("Supressing console output.\n") : ("Enabling console output.\n");
+    print "Option 'writefiles' set to ".$config{"settings.writefiles"}.". ", $config{"settings.writefiles"} ? ("Enabling file output.\n\n") : ("Not writing to files.\n\n");
+    print "Email language is '".$config{"email.activelang"}."'.\n";
+    print "If you want to compose emails, ", ($config{"settings.writefiles"}) ? ("draw lots") : ("enable option 'writefiles' and draw lots"), ".\n" unless ($config{"settings.writefiles"} and $result_status); 
+    #    print "", $config{"settings.writefiles"} ? ("\nEmail language is '".$config{"email.activelang"}."'.\n") : ("\nIf you want to compose emails, enable option 'writefiles'.\n");; 
     print "\nOutput path for files is '".$option_resultspath."'.\n" if $config{"settings.writefiles"};
 
+}
+
+sub set_email_button {
+    my $set_state = $_[0]; 
+    if ($set_state) {
+      $emailButton->configure(-state => 'normal');
+    } else {
+      $emailButton->configure(-state => 'disabled');
+    }
 }
 
 sub invert_selection {
@@ -256,10 +296,12 @@ sub generate_sequence {
         print " files written. ";
     }
     if($loopcounter > 20) {
-      print "No valid sequence could be found in 20 runs. Please check selection and constraints. ";
+      print "No valid sequence could be found in 20 runs. Please check selection and constraints. Done.\n";
+      return 0;
     }
 
     print "Done.\n";
+    return 1;
 }
 
 sub draw_lots {
