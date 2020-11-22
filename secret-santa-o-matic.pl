@@ -27,7 +27,7 @@ use Tk;
 use File::Path qw( make_path );
 use Config::Simple;
 
-my $version = "v0.96";
+my $version = "v0.97";
 
 # Read config file into hash
 my $cfg = new Config::Simple('app.cfg');
@@ -39,6 +39,7 @@ if ( !-d $option_resultspath ) {
     make_path $option_resultspath or die "Failed to create path: $option_resultspath";
 }
 
+# 
 my @emailLanguages = sort(split(",", $config{"email.languages"}));
 
 # Load secret santa participants here 
@@ -195,9 +196,9 @@ sub clean_results_directory {
 # TODO: change to pass result as parameter
 sub send_mails { 
     if (scalar(@result)) {
-        shift @result; #remove last element TODO: refactor so that this is done directly after drawing?
+        shift @result; #remove last element TODO: refactor so that this is done directly after drawing? Otherwise, if "Compose E-Mails" is clicked multiple times, each time an additional person will be falsely removed from the results from the second time on!
         foreach (@result) {
-            my @args = ("thunderbird", "-compose", qq(subject=\'$config{"email.subject_".$config{"email.activelang"}}\',to=\'$_\',body=\'$config{"email.salutation_".$config{"email.activelang"}} $_,\n\n$config{"email.body_".$config{"email.activelang"}}\',attachment=\'$option_resultspath$_.txt\'));
+            my @args = ("thunderbird", "-compose", "subject=\'".$config{"email.subject_".$config{"email.activelang"}}."\',to=\'".$_."\',body=\'".($config{"email.salutation_".$config{"email.activelang"}}." ".$_.",\n\n".$config{"email.body_".$config{"email.activelang"}} =~ s/\\n/\n/gr)."\n\',attachment=\'".$option_resultspath.$_.".txt\'");
             system(@args) == 0 or die "system @args failed: $?";
         }
     } else {
@@ -210,9 +211,7 @@ sub print_options {
     print "Option 'writefiles' set to ".$config{"settings.writefiles"}.". ", $config{"settings.writefiles"} ? ("Enabling file output.\n\n") : ("Not writing to files.\n\n");
     print "Email language is '".$config{"email.activelang"}."'.\n";
     print "If you want to compose emails, ", ($config{"settings.writefiles"}) ? ("draw lots") : ("enable option 'writefiles' and draw lots"), ".\n" unless ($config{"settings.writefiles"} and $result_status); 
-    #    print "", $config{"settings.writefiles"} ? ("\nEmail language is '".$config{"email.activelang"}."'.\n") : ("\nIf you want to compose emails, enable option 'writefiles'.\n");; 
     print "\nOutput path for files is '".$option_resultspath."'.\n" if $config{"settings.writefiles"};
-
 }
 
 sub set_email_button {
