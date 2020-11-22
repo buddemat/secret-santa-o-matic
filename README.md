@@ -25,6 +25,7 @@ Edit the `app.cfg` file to modify the configuration
 
 - List all prospective secret santas in the *[people]* section under the *names* option, e.g. `names="Alice,Bob,Eve,Zoe"`
 - Optionally add a row in the *[illegal]* section with a person's name as key and a comma-separated list of people who you want to exclude as gift recipients for that person, e.g. `Bob="Alice,Zoe"`
+- Additional configuration options are documented in the comments within the `app.cfg` file itself.
 
 ## Execution
 
