@@ -12,7 +12,7 @@ Checkout the repository.
 
     git clone https://github.com/buddemat/secret-santa-o-matic.git
 
-The application naturally requires a `perl` installation and the module `Config::Simple` to run.
+The application naturally requires a `perl` installation (> Perl 5.13.2) and the module `Config::Simple` to run.
 
     cpan install Config::Simple
 
