@@ -26,8 +26,9 @@ use Cwd;
 use Tk;
 use File::Path qw( make_path );
 use Config::Simple;
+require Tk::TextUndo;
 
-my $version = "v0.98";
+my $version = "v0.99";
 
 # Read config file into hash
 my $cfg = new Config::Simple('app.cfg');
@@ -86,7 +87,7 @@ my $topRightFrame = $topFrame->Frame()->pack(
     -side => 'right',
     -anchor => 'n',
 );
-my $consoleText = $topRightFrame->Text()->pack();
+my $consoleText = $topRightFrame->TextUndo()->pack();
 my $optionsFrame = $topRightFrame->Frame()->pack();
 
 
@@ -99,6 +100,9 @@ my $doButton = $optionsFrame->Button(
         (my $result_arr_ref, $result_status) = generate_sequence(\@selection);
         @result = @$result_arr_ref;
         set_email_button($result_status and $config{'settings.writefiles'});
+        if($result_status and $config{'settings.writefiles'}) {
+            print_email_option();
+        }
     },
 )->pack(
     -anchor => 'n',
@@ -112,13 +116,17 @@ my $opionsLabel = $optionsFrame->Label(
     -side => 'left',
 );
 
-
 my $languageDropDown = $optionsFrame->Optionmenu(
     -variable => \$config{"email.activelang"}, 
     -options => \@emailLanguages,
     -command => sub{ 
-        $consoleText->delete("1.0", 'end');
-        print_options();
+        unless ($result_status) {
+            $consoleText->delete("1.0", 'end');
+            print_options();
+        } elsif ($config{'settings.writefiles'})  {
+            $consoleText->undo;
+            print_email_option();
+        }
     },
 )->pack(
     -side => 'left',
@@ -135,10 +143,8 @@ my $filesCheckBox = $optionsFrame->Checkbutton(
 	-variable => \$config{"settings.writefiles"},
 	-anchor => 'w',
     -command => sub{ 
-        unless ($config{"settings.writefiles"}) {
-          $result_status = 0;
-          set_email_button(0);
-        } 
+        $result_status = 0;
+        set_email_button(0);
         $consoleText->delete("1.0", 'end');
         print_options();
     },
@@ -151,6 +157,8 @@ my $optionsilentCheckBox = $optionsFrame->Checkbutton(
 	-variable => \$config{"settings.silent"},
 	-anchor => 'w',
     -command => sub{ 
+        $result_status = 0;
+        set_email_button(0);
         $consoleText->delete("1.0", 'end');
         print_options();
     },
@@ -174,7 +182,6 @@ my $emailButton = $mainWindow->Button(
 )->pack(
     -side => 'right',
 );
-
 
 tie *STDOUT, ref $consoleText, $consoleText;
 
@@ -206,10 +213,14 @@ sub send_mails {
     }
 }
 
+sub print_email_option {
+    print "\nEmail language is '".$config{"email.activelang"}."'.\n";
+}
+
 sub print_options {
     print "Option 'silent' set to ".$config{"settings.silent"}.". ", $config{"settings.silent"} ? ("Supressing console output.\n") : ("Enabling console output.\n");
-    print "Option 'writefiles' set to ".$config{"settings.writefiles"}.". ", $config{"settings.writefiles"} ? ("Enabling file output.\n\n") : ("Not writing to files.\n\n");
-    print "Email language is '".$config{"email.activelang"}."'.\n";
+    print "Option 'writefiles' set to ".$config{"settings.writefiles"}.". ", $config{"settings.writefiles"} ? ("Enabling file output.\n") : ("Not writing to files.\n");
+    print_email_option();
     print "If you want to compose emails, ", ($config{"settings.writefiles"}) ? ("draw lots") : ("enable option 'writefiles' and draw lots"), ".\n" unless ($config{"settings.writefiles"} and $result_status); 
     print "\nOutput path for files is '".$option_resultspath."'.\n" if $config{"settings.writefiles"};
 }
@@ -238,6 +249,11 @@ sub invert_selection {
 sub generate_sequence {
     my @selection = @{$_[0]}; # @selection passed by reference
     my @sequence;
+    if(scalar(@selection) < 2) {
+      print "Please select at least two people.\n";
+      return (\@sequence, 0);
+    }
+
     my $validorder = 0;
     my $loopcounter = 0;
 
