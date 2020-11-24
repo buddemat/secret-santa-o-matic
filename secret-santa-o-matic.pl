@@ -327,7 +327,6 @@ sub draw_lots {
     my $firstname = pop(@peoplecopy);
     my $currentname = $firstname;
     my @pairs;
-    ###push (@pairs, $firstname);
     
     while(@peoplecopy) {
         print 'Choosing gift recipient for: '.$currentname."\n" unless $config{"settings.silent"};
@@ -341,7 +340,7 @@ sub draw_lots {
             if ($config{"illegal.".$currentname} and (index($config{"illegal.".$currentname},$randomname) != -1)) {
               print " ...invalid match!\n" unless $config{"settings.silent"};
               unless ($retrycounter++ < 20) { 
-                print "Too many tries, aborting...\n\n"; 
+                print "Too many tries, aborting...\n\n" unless $config{"settings.silent"}; 
                 return (\@pairs, 0); 
               }
             } else {
@@ -357,7 +356,7 @@ sub draw_lots {
     }
     # check if last and first in list are a valid combination
     if ($config{"illegal.".$currentname} and (index($config{"illegal.".$currentname},$firstname) != -1)) {
-        print "Last and first are invalid match, aborting...\n\n"; 
+        print "Last and first are invalid match, aborting...\n\n" unless $config{"settings.silent"}; 
         return (\@pairs, 0); 
     }
     push(@pairs, $firstname);
