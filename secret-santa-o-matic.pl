@@ -166,8 +166,6 @@ my $optionsilentCheckBox = $optionsFrame->Checkbutton(
     -side => 'left',
 );;
 
-
-
 my $quitButton = $mainWindow->Button(
     -text => 'Quit',
     -command => sub{ exit(); },
@@ -197,9 +195,11 @@ print "Welcome to Secret-Santa-O-Matic ".$version."\n\n";
 print_options();
 $mainWindow->MainLoop();
 
+
 sub clean_results_directory {
     unlink glob("$option_resultspath/*")
 }
+
 
 sub send_mails { 
     my @recipients =  @{$_[0]}; # @recipients passed by reference
@@ -213,9 +213,11 @@ sub send_mails {
     }
 }
 
+
 sub print_email_option {
     print "\nEmail language is '".$config{"email.activelang"}."'.\n";
 }
+
 
 sub print_options {
     print "Option 'silent' set to ".$config{"settings.silent"}.". ", $config{"settings.silent"} ? ("Supressing console output.\n") : ("Enabling console output.\n");
@@ -225,6 +227,7 @@ sub print_options {
     print "\nOutput path for files is '".$option_resultspath."'.\n" if $config{"settings.writefiles"};
 }
 
+
 sub set_email_button {
     my $set_state = $_[0]; 
     if ($set_state) {
@@ -233,6 +236,7 @@ sub set_email_button {
       $emailButton->configure(-state => 'disabled');
     }
 }
+
 
 sub invert_selection {
   my @currentSelection = $peopleListBox->curselection; 
@@ -250,7 +254,7 @@ sub generate_sequence {
     my @selection = @{$_[0]}; # @selection passed by reference
     my @sequence;
     if(scalar(@selection) < 2) {
-      print "Please select at least two people.\n";
+      print "Please select at least two people!\n";
       return (\@sequence, 0);
     }
 
@@ -316,6 +320,7 @@ sub generate_sequence {
     print "Done.\n";
     return (\@sequence, 1);
 }
+
 
 sub draw_lots {
     my $valid = 0;
