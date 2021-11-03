@@ -3,7 +3,7 @@
 ############################################################################################
 # Secret-Santa-O-Matic                                                                     #
 #                                                                                          #
-# written 2015-2020 by Matthias Budde                                                      # 
+# written 2015-2021 by Matthias Budde                                                      # 
 #                                                                                          #
 # Perl/Tk script to automatically determine a random sequence of Secret Santas for a list  #
 # of people. Includes the possibility to set invalid (i.e. forbidden) combinations.        # 
@@ -28,7 +28,7 @@ use File::Path qw( make_path );
 use Config::Simple;
 require Tk::TextUndo;
 
-my $version = "v0.99";
+my $version = "v0.99.1";
 
 # Read config file into hash
 my $cfg = new Config::Simple('app.cfg');
@@ -65,6 +65,7 @@ my $topLeftFrame = $topFrame->Frame()->pack(
 my $peopleListBox = $topLeftFrame->Scrolled("Listbox",
     -selectmode => 'multiple',
     -scrollbars => "osoe",
+    -exportselection => 0,
     -height => scalar(@allPeople) >= $config{"gui.maxlistheight"} ?  $config{"gui.maxlistheight"} : scalar(@allPeople) 
 )->pack();
 
